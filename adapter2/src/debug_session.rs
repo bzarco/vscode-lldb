@@ -56,6 +56,7 @@ struct BreakpointInfo {
     id: BreakpointID,
     breakpoint: SBBreakpoint,
     kind: BreakpointKind,
+    file_path: Option<PathBuf>,
     condition: Option<String>,
     log_message: Option<String>,
     hit_condition: Option<HitCondition>,
@@ -510,6 +511,7 @@ impl DebugSession {
                 id: bp.id(),
                 breakpoint: bp,
                 kind: BreakpointKind::Location,
+                file_path: Some(file_path_norm.clone()),
                 condition: req.condition.clone(),
                 log_message: req.log_message.clone(),
                 hit_condition: self.parse_hit_condition(req.hit_condition.as_ref()),
@@ -557,6 +559,7 @@ impl DebugSession {
                 id: bp.id(),
                 breakpoint: bp,
                 kind: BreakpointKind::Address,
+                file_path: None,
                 condition: req.condition.clone(),
                 log_message: req.log_message.clone(),
                 hit_condition: self.parse_hit_condition(req.hit_condition.as_ref()),
@@ -591,6 +594,7 @@ impl DebugSession {
                 id: bp.id(),
                 breakpoint: bp,
                 kind: BreakpointKind::Address,
+                file_path: None,
                 condition: req.condition.clone(),
                 log_message: req.log_message.clone(),
                 hit_condition: self.parse_hit_condition(req.hit_condition.as_ref()),
@@ -623,6 +627,11 @@ impl DebugSession {
                 BreakpointKind::Location => {
                     let address = bp_info.breakpoint.location_at_index(0).address();
                     if let Some(le) = address.line_entry() {
+                        // Do not use `le.file_spec().path()` to get the file path, as lldb returns the unmapped path
+                        // (without resolving `target.source-map` matches), so it may not work locally.
+                        // let file_path = bp_info.file_path.as_ref();
+
+
                         let fs = le.file_spec();
                         // Do not use `le.file_spec().path()` to get the file path, as lldb returns the unmapped path
                         // (without resolving `target.source-map` matches), so it may not work locally. Instead try to
@@ -634,6 +643,8 @@ impl DebugSession {
                         Breakpoint {
                             id: Some(bp_info.id as i64),
                             source: Some(Source {
+                                // name: file_path.map(|f| f.file_name().unwrap().to_string_lossy().into_owned()),
+                                // path: file_path.map(|f| f.as_os_str().to_string_lossy().into_owned()),
                                 name: Some(file_path.file_name().unwrap().to_string_lossy().into_owned()),
                                 path: Some(file_path.as_os_str().to_string_lossy().into_owned()),
                                 ..Default::default()
@@ -734,6 +745,7 @@ impl DebugSession {
                 id: bp.id(),
                 breakpoint: bp,
                 kind: BreakpointKind::Function,
+                file_path: None,
                 condition: req.condition,
                 log_message: None,
                 hit_condition: self.parse_hit_condition(req.hit_condition.as_ref()),
@@ -773,6 +785,7 @@ impl DebugSession {
                 id: bp.id(),
                 breakpoint: bp,
                 kind: BreakpointKind::Exception,
+                file_path: None,
                 condition: None,
                 log_message: None,
                 hit_condition: None,
@@ -2615,6 +2628,7 @@ impl DebugSession {
                     id: bp.id(),
                     breakpoint: bp,
                     kind: BreakpointKind::Location,
+                    file_path: None,
                     condition: None,
                     log_message: None,
                     hit_condition: None,

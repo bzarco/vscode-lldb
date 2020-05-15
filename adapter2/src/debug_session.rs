@@ -103,7 +103,6 @@ pub struct DebugSession {
     source_map_cache: RefCell<HashMap<PathBuf, Option<Rc<PathBuf>>>>,
     loaded_modules: Vec<SBModule>,
     source_map: Option<VecMap<String, Option<String>>>,
-    relative_path_base: MustInitialize<PathBuf>,
     exit_commands: Option<Vec<String>>,
     debuggee_terminal: Option<Terminal>,
     selected_frame_changed: bool,
@@ -207,7 +206,6 @@ impl DebugSession {
             source_map_cache: RefCell::new(HashMap::new()),
             loaded_modules: Vec::new(),
             source_map: None,
-            relative_path_base: NotInitialized,
             exit_commands: None,
             debuggee_terminal: None,
             selected_frame_changed: false,
@@ -1333,11 +1331,6 @@ impl DebugSession {
                 },
             }));
         }
-
-        self.relative_path_base = Initialized(match &args_common.relative_path_base {
-            Some(base) => base.into(),
-            None => env::current_dir()?,
-        });
 
         if let Some(ref settings) = args_common.adapter_settings {
             self.update_adapter_settings(settings);
@@ -2668,8 +2661,7 @@ impl DebugSession {
     // Maps remote file path to canonical local file path.
     // The bulk of this work is done by LLDB itself (via target.source-map), in addition to which:
     // - if LLDB didn't map the path (like with breakpoint responses), we perform the mapping.
-    // - if `filespec` contains a relative path, we convert it to an absolute one using relative_path_base
-    //   (which is normally initialized to ${workspaceFolder}) as a base.
+    // - if `filespec` contains a relative path after mapping, we convert it to an absolute one using the current dir.
     // - we check whether the local file actually exists, and suppress it (if `suppress_missing_files` is true),
     //   to prevent VSCode from prompting to create them.
     fn map_filespec_to_local(&self, filespec: &SBFileSpec) -> Option<Rc<PathBuf>> {
@@ -2696,9 +2688,11 @@ impl DebugSession {
                             }
                         }
                     }
-                    // Make sure the path is absolute.
+                    // If path is still relative (unlikely), try using current directory.
                     if path.is_relative() {
-                        path = self.relative_path_base.join(path);
+                        if let Ok(current_dir) = env::current_dir() {
+                            path = current_dir.join(path);
+                        }
                     }
                     // Canonicalize the path (VSCode doesn't handle paths with `..` correctly), and suppress it when
                     // `suppress_missing_files` is true and local file doesn't exist (canonicalize will fail).

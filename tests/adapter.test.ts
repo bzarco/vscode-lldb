@@ -340,7 +340,6 @@ function generateSuite(triple: string) {
                         [`${drive}/remote2`]: path.join(sourceDir, 'debuggee', 'cpp', 'remote2'),
                         ['.']: path.join(sourceDir, 'debuggee'),
                     },
-                    relativePathBase: path.join(sourceDir, 'debuggee'),
                     preRunCommands: [
                         `set show target.source-map`
                     ]

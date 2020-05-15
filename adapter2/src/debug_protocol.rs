@@ -170,7 +170,6 @@ pub struct CommonLaunchFields {
     pub exit_commands: Option<Vec<String>>,
     pub source_languages: Option<Vec<String>>,
     pub reverse_debugging: Option<bool>,
-    pub relative_path_base: Option<String>,
     #[serde(rename = "_adapterSettings")]
     pub adapter_settings: Option<AdapterSettings>,
 }

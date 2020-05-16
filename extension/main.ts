@@ -325,7 +325,9 @@ class Extension implements DebugConfigurationProvider, DebugAdapterDescriptorFac
         }
 
         launchConfig.relativePathBase = launchConfig.relativePathBase || workspace.rootPath;
-        launchConfig.sourceMap = mergeValues({'.': launchConfig.relativePathBase}, launchConfig.sourceMap);
+        if (!('.' in launchConfig.sourceMap)) {
+            launchConfig.sourceMap['.'] = launchConfig.relativePathBase;
+        }
 
         // Deal with Cargo
         if (launchConfig.cargo != undefined) {
